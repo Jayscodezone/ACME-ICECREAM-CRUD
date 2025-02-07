@@ -10,7 +10,8 @@ const client = new pg.Client(
 
 // static routes here ( you only needs these for deployment )
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../client/dist")));
+app.use(express.static(path.join(__dirname, "..", "client", "dist")));
+
 
 // app routes here
 app.get("/api/flavors", async (req, res) => {
@@ -34,11 +35,11 @@ id SERIAL PRIMARY KEY,
 name VARCHAR(255) NOT NULL,
 is_favorite BOOLEAN DEFAULT FALSE,
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
 );
-INSERT INTO flavors(name, is_favorite) VALUES('Banana-Split', false);
+INSERT INTO flavors(name, is_favorite) VALUES('Banana Split', false);
 INSERT INTO flavors(name, is_favorite) VALUES('Cookies & Cream', true);
-INSERT INTO flavors(name, is_favorite) VALUES('Butter-Pecan routes', false);
+INSERT INTO flavors(name, is_favorite) VALUES('Butter Pecan', false);
 `;
     await client.query(SQL);
     console.log("database seeded");
