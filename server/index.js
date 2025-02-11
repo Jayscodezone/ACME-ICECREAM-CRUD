@@ -9,7 +9,7 @@ const client = new pg.Client(
 );
 const port = process.env.PORT || 3000;
 //Database Connection
-require("dotenv").config();
+
 // testing log environment
 //console.log("Database Config:", {
 // user: process.env.DB_USER,
@@ -27,16 +27,21 @@ require("dotenv").config();
 //  port: process.env.DB_PORT,
 //});
 //// parse the body into JS Object
+
+//Middleware 
 app.use(express.json());
 
 //Logging the request as they come in
 app.use(require("morgan")("dev"));
 // static routes here ( you only needs these for deployment )
 app.use(express.static(path.join(__dirname, "..", "client", "dist")));
+
+
 // create your init function
 const init = async () => {
   await client.connect();
   console.log("Connected to Database");
+  
   let SQL = `
 DROP TABLE IF EXISTS flavors;
 CREATE TABLE flavors(
@@ -61,37 +66,63 @@ INSERT INTO flavors(name, is_favorite) VALUES('Mint Chocolate Chip', true);
   await client.query(SQL);
   console.log("Database seeded");
 
-  const port = process.env.PORT || 3000;
   app.listen(port, () => console.log(`listening on port ${port}`));
 };
 
 // Create Flavors
-app.get("/api/flavors", async (req, res) => {
+app.get("/api/flavors", async (req, res, next ) => {
   try {
-    const result = await client.query("SELECT * FROM flavors");
-    res.json(result.rows);
+    const response = await client.query("SELECT * FROM flavors");
+    res.json(response.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Server error");
+    next(err);
   }
 });
 
 // Route for single flavors by ID
-app.get("/api/flavors/:id", async (req, res) => {
-  const { id } = req.params;
+app.get("/api/flavors/:id", async (req, res,next ) => {
   try {
-    const result = await client.query("SELECT * FROM flavors WHERE id = $1", [
-      id,
-    ]);
-    if (result.rows.length === 0) {
-      return res.status(404).send("Flavor not found");
+    console.log('Received ID:', req.params.id); // Log the received ID
+    const flavorId = parseInt(req.params.id, 10);
+
+    if (isNaN(flavorId)) {
+      return res.status(400).send({ error: 'Invalid flavor ID' });
     }
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Server error");
+
+    const SQL = 'SELECT * FROM flavors WHERE id = $1';
+    const response = await client.query(SQL, [flavorId]);
+
+    if (!response.rows[0]) {
+      return res.status(404).send({ error: 'Flavor not found' });
+    }
+
+    res.send(response.rows[0]);
+  } catch (ex) {
+    console.error('Error in /api/flavors/:id route:', ex);
+    next(ex);
   }
 });
+  //const { id } = req.params;
+  //try {
+   // const result  = await client.query(" SELECT * FROM flavors WHERE id = $1", 
+   //   [id]);
+    //  res.json(result.rows);
+   // } catch (err) {
+   //   console.error(err);
+   //   res.status(500).send("Server error");
+   // }
+  //});
+     
+   // ]);
+ //  if (result.rows.length === 0) {
+  //   return res.status(404).send("Flavor not found");
+  //  }
+  //  res.json(result.rows[0]);
+ // } catch (err) {
+  //  console.error(err);
+   // res.status(500).send("Server error");
+ // }
+//});
 
 // Create a new flavor
 app.post("/api/flavors", async (req, res) => {
@@ -129,8 +160,11 @@ app.put("/api/flavors/:id", async (req, res) => {
 app.delete("/api/flavors/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    await client.query("DELETE FROM flavors WHERE id = $1", [id]);
-    res.status(204).send();
+    const result = await client.query("DELETE FROM flavors WHERE id = $1 RETURNING *", [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).send("Flavor not found");
+    }
+    res.status(204).send(); //  successful delete
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
