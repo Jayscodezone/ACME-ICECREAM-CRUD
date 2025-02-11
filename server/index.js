@@ -1,11 +1,21 @@
 // Imports here for express and pg
 const express = require("express");
 const { Pool } = require("pg");
+const path = require("path"); 
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
 //Database Connection
 require("dotenv").config();
+// testing log environment 
+console.log("Database Config:", {
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD ? "****" : "NOT SET",
+  port: process.env.DB_PORT,
+});
+
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
@@ -19,7 +29,7 @@ app.use(express.json());
 //Logging the request as they come in
 app.use(require("morgan")("dev"));
 // static routes here ( you only needs these for deployment )
-//app.use(express.static(path.join(__dirname, "..", "client", "dist")));
+app.use(express.static(path.join(__dirname, "..", "client", "dist")));
 // create your init function
 const init = async () => {
   try {
@@ -44,8 +54,8 @@ INSERT INTO flavors(name, is_favorite) VALUES('Mint Chocolate Chip', true);
     await pool.query(SQL);
     console.log('Database seeded');
 
-    const port = process.env.PORT || 4000;
-    app.listen(3000, () => console.log(`listening on port ${port}`));
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => console.log(`listening on port ${port}`));
   } catch (error) {
     console.error("Database connection :", error);
   }
